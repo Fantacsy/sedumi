@@ -99,18 +99,12 @@ fprintf( '\n%s\nSeDuMi installation script\n   Directory: %s\n   %s %s on %s\n%s
 if ~need_rebuild,
     fprintf( 'Looking for existing binaries...' );
     mdir = '';
-    if ISOCTAVE && VERSION > 3.08,
-        if ispc,
-            mdir = 'o_win32';
-        elseif ismac,
-            mdir = 'o_mac32';
-        elseif isunix && any( strfind( COMPUTER, 'linux' ) ),
-            mdir = 'o_lin32';
+    if ISOCTAVE && VERSION >= 4,
+        switch computer,
+        case 'i686-w64-mingw32', mdir = 'o_win';
+        otherwise, mdir='';
         end
-        if ~isempty(mdir) && strncmpi( COMPUTER, 'x86_64', 6 ),
-            mdir(end-1:end) = '64';
-        end
-        if ~exist( [ mpath, fs, mdir ], 'dir' ),
+        if ~isempty(mdir) && ~exist( [ mpath, fs, mdir ], 'dir' ),
             mdir = '';
         end
     end
@@ -151,11 +145,7 @@ if need_rebuild,
     % Note the use of 0.01 here. That's because version 7 had more than 10
     % minor releases, so 7.10-7.14 need to be ordered after 7.01-7.09.
     IS64BIT  = ~ISOCTAVE & strcmp(COMPUTER(end-1:end),'64');
-    if ispc,
-        flags = {'-DPC'};
-    elseif isunix,
-        flags = {'-DUNIX'};
-    end
+    flags = {};
     libs = {};
     if ISOCTAVE,
         % Octave has mwSize and mwIndex hardcoded in mex.h as ints.
@@ -164,6 +154,8 @@ if need_rebuild,
         if VERSION < 3.08,
             flags{end+1} = '-DmwSignedIndex=int';
         end
+        flags{end+1} = '-O';
+        flags{end+1} = '-DOCTAVE';
         libs{end+1} = '-lblas';
     else
         flags{end+1} = '-O';
@@ -176,7 +168,7 @@ if need_rebuild,
         end
         if VERSION >= 7 && ispc,
             if IS64BIT, dirval = 'win64'; else dirval = 'win32'; end
-            libdir = [ matlabroot, fs, 'external', fs, 'lib', fs, dirval, fs ];
+            libdir = [ matlabroot, fs, 'extern', fs, 'lib', fs, dirval, fs ];
             if exist( [ libdir, 'microsoft' ], 'dir' ),
                 libdir = [ libdir, 'microsoft' ];
                 found = true;
